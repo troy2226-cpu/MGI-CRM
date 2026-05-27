@@ -437,7 +437,7 @@ function tbHTML(active){
   </div>`;
 }
 function badgeClass(st){return st==='overdue'?'badge-overdue':st==='today'?'badge-today':st==='upcoming'?'badge-upcoming':'badge-future';}
-function badgeText(st,fu){return st==='overdue'?'Overdue':st==='today'?'Due today':st==='upcoming'?'This week':fu||'';}
+function badgeText(st,fu){return fu||'—';}
 
 function renderAccounts(app){
   const allAccts=getAllAccounts();
