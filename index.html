@@ -540,7 +540,7 @@ function renderDetail(app){
       <div class="detail-header">
         <div class="avatar">${initials(a.contact)}</div>
         <div style="flex:1"><div class="detail-name">${a.contact||a.company}</div><div class="detail-sub">${a.company}</div></div>
-        <span class="ar-badge ${badgeClass(st)}" style="align-self:flex-start">${st==='overdue'?'Overdue':st==='today'?'Due today':st==='upcoming'?'This week':'On track'}</span>
+        <span class="ar-badge ${badgeClass(st)}" style="align-self:flex-start">${d.followUp||'—'}</span>
       </div>
       <div class="detail-grid">
         <div class="detail-field"><div class="field-label">Phone</div><div class="field-val">${a.phone||'—'}</div></div>
