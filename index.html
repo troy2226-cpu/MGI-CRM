@@ -528,7 +528,6 @@ function renderDetail(app){
       <div class="ms-month-name ${isCur?'current':''}">${col.label}${isCur?' ★':''}</div>
       <input class="ms-month-input ${val?'has-val':''} ${isCur?'current-month':''}"
         type="number" value="${val}" placeholder="—" data-key="${col.key}"
-        ${isFuture?'style="opacity:0.4"':''}
         onchange="updateMonthInput(${a.id},this)">
     </div>`;
   }).join('');
@@ -661,8 +660,8 @@ function renderSales(app){
             if(state.editingCell&&state.editingCell.id===r.id&&state.editingCell.key===c.key){
               return`<td class="${isCur?'cur-col':''}"><input class="cell-input" id="cell-${r.id}-${c.fyMonth}-inp" type="number" value="${val||''}" placeholder="0" onblur="saveCell(${r.id},'${c.key}',this.value)" onkeydown="if(event.key==='Enter')saveCell(${r.id},'${c.key}',this.value);if(event.key==='Escape'){state.editingCell=null;render();}"></td>`;
             }
-            return`<td class="${isCur?'cur-col':''}" ${isFuture?'style="opacity:0.3"':''}>
-              <span class="cell-display ${!val?'empty-cell':''}" onclick="${isFuture?'':`startCellEdit(${r.id},'${c.key}')`}">${val?fmt(val):'—'}</span>
+            return`<td class="${isCur?'cur-col':''}">
+              <span class="cell-display ${!val?'empty-cell':''}" onclick="startCellEdit(${r.id},'${c.key}')">${val?fmt(val):'—'}</span>
             </td>`;
           }).join('')}
         </tr>`).join('')}
