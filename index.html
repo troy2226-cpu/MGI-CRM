@@ -18,18 +18,37 @@
   .tab{padding:7px 16px;font-size:13px;cursor:pointer;border-radius:8px 8px 0 0;color:#888;border:1px solid transparent;border-bottom:none;background:transparent;font-family:inherit}
   .tab.active{color:#111;background:#fff;border-color:#e0e0db;font-weight:600}
   /* Home/Notes page */
-  .notes-grid{display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-top:4px}
+  .home-layout{display:grid;grid-template-columns:1fr 280px;gap:16px;margin-top:4px;align-items:start}
+  @media(max-width:700px){.home-layout{grid-template-columns:1fr}}
+  .notes-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px}
   @media(max-width:560px){.notes-grid{grid-template-columns:1fr}}
-  .note-card{background:#fff;border:1px solid #e8e8e4;border-radius:12px;padding:16px;display:flex;flex-direction:column;gap:10px;min-height:280px}
+  .note-card{background:#fff;border:1px solid #e8e8e4;border-radius:12px;padding:14px;display:flex;flex-direction:column;gap:8px;min-height:240px}
   .note-card-header{display:flex;align-items:center;gap:8px}
-  .note-title-input{font-size:14px;font-weight:600;color:#111;border:none;background:transparent;font-family:inherit;flex:1;padding:2px 4px;border-radius:4px}
+  .note-title-input{font-size:13px;font-weight:600;color:#111;border:none;background:transparent;font-family:inherit;flex:1;padding:2px 4px;border-radius:4px}
   .note-title-input:focus{outline:none;background:#f5f5f3}
   .note-title-input::placeholder{color:#ccc}
-  .note-body{flex:1;padding:8px 10px;font-size:13px;border:1px solid #eee;border-radius:8px;background:#fafaf8;color:#111;font-family:inherit;resize:none;line-height:1.6;min-height:220px}
+  .note-body{flex:1;padding:8px 10px;font-size:12px;border:1px solid #eee;border-radius:8px;background:#fafaf8;color:#111;font-family:inherit;resize:none;line-height:1.6;min-height:180px}
   .note-body:focus{outline:none;border-color:#bbb;background:#fff}
-  .note-saved{font-size:10px;color:#aaa;text-align:right}
   .home-greeting{font-size:15px;font-weight:600;color:#111;margin-bottom:4px}
-  .home-sub{font-size:12px;color:#888;margin-bottom:16px}
+  .home-sub{font-size:12px;color:#888;margin-bottom:12px}
+  /* Sales sidebar */
+  .sales-sidebar{background:#fff;border:1px solid #e8e8e4;border-radius:12px;overflow:hidden;position:sticky;top:16px}
+  .sidebar-header{padding:12px 14px;border-bottom:1px solid #f0f0ec;display:flex;align-items:center;justify-content:space-between}
+  .sidebar-title{font-size:13px;font-weight:600;color:#111}
+  .sidebar-month{font-size:11px;color:#888}
+  .sidebar-total{font-size:11px;color:#888;padding:8px 14px;border-bottom:1px solid #f5f5f3;display:flex;justify-content:space-between}
+  .sidebar-total span{font-weight:600;color:#185fa5}
+  .sidebar-list{max-height:520px;overflow-y:auto}
+  .sidebar-row{display:flex;align-items:center;gap:8px;padding:7px 14px;border-bottom:1px solid #f8f8f6;transition:background 0.1s}
+  .sidebar-row:last-child{border-bottom:none}
+  .sidebar-row:hover{background:#fafaf8}
+  .sidebar-name{font-size:12px;font-weight:500;color:#111;flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+  .sidebar-val{font-size:12px;font-weight:600;color:#185fa5;white-space:nowrap;min-width:60px;text-align:right}
+  .sidebar-val.empty{color:#ddd;font-weight:400}
+  .sidebar-inp{width:72px;padding:2px 5px;font-size:12px;font-weight:600;border:1px solid #185fa5;border-radius:5px;color:#185fa5;font-family:inherit;text-align:right;background:#fff}
+  .sidebar-inp:focus{outline:none}
+  .sidebar-edit-btn{font-size:10px;color:#ccc;background:transparent;border:none;cursor:pointer;padding:0;font-family:inherit}
+  .sidebar-edit-btn:hover{color:#185fa5}
   .today-bar{background:#fff8ec;border:1px solid #f0d080;border-radius:8px;padding:10px 14px;margin-bottom:14px;display:flex;align-items:center;gap:10px;flex-wrap:wrap}
   .today-label{font-size:12px;font-weight:600;color:#a06800;white-space:nowrap}
   .today-chip{background:#fff;border:1px solid #f0d080;border-radius:20px;padding:3px 10px;font-size:12px;color:#111;cursor:pointer;white-space:nowrap}
@@ -778,22 +797,54 @@ function renderHome(app){
   const dayNames=['Sunday','Monday','Tuesday','Wednesday','Thursday','Friday','Saturday'];
   const monthNames=['January','February','March','April','May','June','July','August','September','October','November','December'];
   const greeting=`${dayNames[d.getDay()]}, ${monthNames[d.getMonth()]} ${d.getDate()}`;
+  const allAccts=getAllAccounts();
+  const curTotal=allAccts.reduce((s,a)=>s+getCurMS(a.id),0);
+  const sortedAccts=allAccts.slice().sort((a,b)=>a.company.localeCompare(b.company));
 
   app.innerHTML=tbHTML('home')+`
     <div class="home-greeting">${greeting}</div>
-    <div class="home-sub">Click any section title to rename it. Your notes save automatically.</div>
-    <div class="notes-grid">
-      ${[0,1,2,3].map(i=>`
-        <div class="note-card">
-          <div class="note-card-header">
-            <input class="note-title-input" id="note-title-${i}" value="${nd.titles[i]||''}" placeholder="Section ${i+1} — click to name"
-              onchange="saveNoteTitle(${i},this.value)" onblur="saveNoteTitle(${i},this.value)">
+    <div class="home-sub">Click any section title to rename it. Notes and sales save automatically.</div>
+    <div class="home-layout">
+      <div class="notes-grid">
+        ${[0,1,2,3].map(i=>`
+          <div class="note-card">
+            <div class="note-card-header">
+              <input class="note-title-input" id="note-title-${i}" value="${nd.titles[i]||''}" placeholder="Section ${i+1} — click to name"
+                onchange="saveNoteTitle(${i},this.value)" onblur="saveNoteTitle(${i},this.value)">
+            </div>
+            <textarea class="note-body" id="note-body-${i}" placeholder="Type your notes here..."
+              onchange="saveNoteBody(${i},this.value)" oninput="saveNoteBody(${i},this.value)">${nd.notes[i]||''}</textarea>
           </div>
-          <textarea class="note-body" id="note-body-${i}" placeholder="Type your notes here..."
-            onchange="saveNoteBody(${i},this.value)" oninput="saveNoteBody(${i},this.value)">${nd.notes[i]||''}</textarea>
+        `).join('')}
+      </div>
+      <div class="sales-sidebar">
+        <div class="sidebar-header">
+          <span class="sidebar-title">${MONTH_NAMES[CUR_MONTH_IDX].slice(0,3)} Sales</span>
+          <span class="sidebar-month">${CUR_MONTH_KEY}</span>
         </div>
-      `).join('')}
+        <div class="sidebar-total"><span>Month total</span><span>${curTotal?('$'+Math.round(curTotal).toLocaleString()):'$0'}</span></div>
+        <div class="sidebar-list">
+          ${sortedAccts.map(a=>{
+            const ms=getCurMS(a.id);
+            const isEditing=state.editingSales===('sb-'+a.id);
+            return`<div class="sidebar-row">
+              <span class="sidebar-name" title="${a.company}">${a.company}</span>
+              ${isEditing?
+                `<input class="sidebar-inp" id="sb-inp-${a.id}" type="number" value="${ms||''}" placeholder="0"
+                  onblur="saveSidebarSales(${a.id})" onkeydown="if(event.key==='Enter')saveSidebarSales(${a.id});if(event.key==='Escape'){state.editingSales=null;render();}">`:
+                `<span class="sidebar-val ${!ms?'empty':''}" onclick="state.editingSales='sb-${a.id}';render()">${ms?('$'+Math.round(ms).toLocaleString()):'—'}</span>`
+              }
+            </div>`;
+          }).join('')}
+        </div>
+      </div>
     </div>`;
+
+  if(state.editingSales&&state.editingSales.startsWith('sb-')){
+    const id=parseInt(state.editingSales.replace('sb-',''));
+    const inp=document.getElementById('sb-inp-'+id);
+    if(inp){inp.focus();inp.select();}
+  }
 }
 
 function saveNoteTitle(idx,val){
@@ -805,6 +856,14 @@ function saveNoteBody(idx,val){
   if(!acctData.notepadData)acctData.notepadData={titles:['','','',''],notes:['','','','']};
   acctData.notepadData.notes[idx]=val;
   saveData();
+}
+function saveSidebarSales(id){
+  const inp=document.getElementById('sb-inp-'+id);if(!inp)return;
+  const val=parseFloat(inp.value)||0;
+  if(!acctData[id])acctData[id]={lastContact:'',followUp:'',notes:[],monthlySales:{}};
+  if(!acctData[id].monthlySales)acctData[id].monthlySales={};
+  acctData[id].monthlySales[CUR_MONTH_KEY]=val;
+  state.editingSales=null;saveData();render();
 }
 
 loadData();
