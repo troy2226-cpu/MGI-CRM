@@ -17,6 +17,19 @@
   .tab-bar{display:flex;gap:2px;padding:10px 0 0;border-bottom:1px solid #e0e0db;margin-bottom:16px}
   .tab{padding:7px 16px;font-size:13px;cursor:pointer;border-radius:8px 8px 0 0;color:#888;border:1px solid transparent;border-bottom:none;background:transparent;font-family:inherit}
   .tab.active{color:#111;background:#fff;border-color:#e0e0db;font-weight:600}
+  /* Home/Notes page */
+  .notes-grid{display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-top:4px}
+  @media(max-width:560px){.notes-grid{grid-template-columns:1fr}}
+  .note-card{background:#fff;border:1px solid #e8e8e4;border-radius:12px;padding:16px;display:flex;flex-direction:column;gap:10px;min-height:280px}
+  .note-card-header{display:flex;align-items:center;gap:8px}
+  .note-title-input{font-size:14px;font-weight:600;color:#111;border:none;background:transparent;font-family:inherit;flex:1;padding:2px 4px;border-radius:4px}
+  .note-title-input:focus{outline:none;background:#f5f5f3}
+  .note-title-input::placeholder{color:#ccc}
+  .note-body{flex:1;padding:8px 10px;font-size:13px;border:1px solid #eee;border-radius:8px;background:#fafaf8;color:#111;font-family:inherit;resize:none;line-height:1.6;min-height:220px}
+  .note-body:focus{outline:none;border-color:#bbb;background:#fff}
+  .note-saved{font-size:10px;color:#aaa;text-align:right}
+  .home-greeting{font-size:15px;font-weight:600;color:#111;margin-bottom:4px}
+  .home-sub{font-size:12px;color:#888;margin-bottom:16px}
   .today-bar{background:#fff8ec;border:1px solid #f0d080;border-radius:8px;padding:10px 14px;margin-bottom:14px;display:flex;align-items:center;gap:10px;flex-wrap:wrap}
   .today-label{font-size:12px;font-weight:600;color:#a06800;white-space:nowrap}
   .today-chip{background:#fff;border:1px solid #f0d080;border-radius:20px;padding:3px 10px;font-size:12px;color:#111;cursor:pointer;white-space:nowrap}
@@ -262,7 +275,7 @@ const DEFAULT_NOTES={3:["2/10 offered 22 melt 1.5 izod at 39"],11:["2/9 followed
 const DEFAULT_FOLLOWUPS={1:"1/26/2026",2:"1/26/2026",3:"1/26/2026",4:"1/26/2026",5:"1/26/2026",6:"1/26/2026",7:"1/26/2026",8:"1/26/2026",9:"1/26/2026",10:"1/26/2026",11:"2/16/2026",12:"2/16/2026",13:"2/17/2026",14:"2/18/2026",15:"2/19/2026",16:"2/23/2026",17:"3/3/2026",18:"3/3/2026",19:"3/3/2026",20:"3/4/2026",21:"3/13/2026",22:"3/13/2026",23:"3/16/2026",24:"3/30/2026",25:"3/30/2026",26:"3/30/2026",27:"3/30/2026"};
 
 let acctData={};
-let state={tab:'accounts',filter:'all',search:'',detail:null,editingSales:null,sort:'urgency',salesSort:{col:'diff',dir:'asc'},editingCell:null};
+let state={tab:'home',filter:'all',search:'',detail:null,editingSales:null,sort:'urgency',salesSort:{col:'diff',dir:'asc'},editingCell:null};
 let saveTimer=null;
 
 // Returns combined list of base + custom accounts
@@ -421,17 +434,21 @@ const IC={
   edit:`<svg class="icon" viewBox="0 0 24 24"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>`,
   trash:`<svg class="icon" viewBox="0 0 24 24"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2"/></svg>`,
   az:`<svg class="icon" viewBox="0 0 24 24"><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="15" y2="12"/><line x1="3" y1="18" x2="9" y2="18"/></svg>`,
-  dollar:`<svg class="icon" viewBox="0 0 24 24"><line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg>`
+  dollar:`<svg class="icon" viewBox="0 0 24 24"><line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg>`,
+  home:`<svg class="icon" viewBox="0 0 24 24"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>`
 };
 
 function render(){
   const app=document.getElementById('app');
   if(state.detail!==null){renderDetail(app);return;}
-  if(state.tab==='accounts')renderAccounts(app);else renderSales(app);
+  if(state.tab==='home')renderHome(app);
+  else if(state.tab==='accounts')renderAccounts(app);
+  else renderSales(app);
 }
 function tbHTML(active){
-  return`<div class="topbar">${IC.briefcase}<h1>Sales CRM</h1><div class="sync-badge"><span class="sync-dot" id="sync-dot"></span><span id="sync-lbl">Synced</span></div></div>
+  return`<div class="topbar">${IC.briefcase}<h1>MGI Dashboard</h1><div class="sync-badge"><span class="sync-dot" id="sync-dot"></span><span id="sync-lbl">Synced</span></div></div>
   <div class="tab-bar">
+    <button class="tab ${active==='home'?'active':''}" onclick="switchTab('home')">${IC.home} Home</button>
     <button class="tab ${active==='accounts'?'active':''}" onclick="switchTab('accounts')">${IC.users} Accounts</button>
     <button class="tab ${active==='sales'?'active':''}" onclick="switchTab('sales')">${IC.chart} Sales</button>
   </div>`;
@@ -751,6 +768,43 @@ function addNote(id){
 function deleteNote(id,idx){
   if(!acctData[id]||!acctData[id].notes)return;
   acctData[id].notes.splice(idx,1);saveData();render();
+}
+
+
+function renderHome(app){
+  if(!acctData.notepadData){acctData.notepadData={titles:['','','',''],notes:['','','','']};}
+  const nd=acctData.notepadData;
+  const d=new Date();
+  const dayNames=['Sunday','Monday','Tuesday','Wednesday','Thursday','Friday','Saturday'];
+  const monthNames=['January','February','March','April','May','June','July','August','September','October','November','December'];
+  const greeting=`${dayNames[d.getDay()]}, ${monthNames[d.getMonth()]} ${d.getDate()}`;
+
+  app.innerHTML=tbHTML('home')+`
+    <div class="home-greeting">${greeting}</div>
+    <div class="home-sub">Click any section title to rename it. Your notes save automatically.</div>
+    <div class="notes-grid">
+      ${[0,1,2,3].map(i=>`
+        <div class="note-card">
+          <div class="note-card-header">
+            <input class="note-title-input" id="note-title-${i}" value="${nd.titles[i]||''}" placeholder="Section ${i+1} — click to name"
+              onchange="saveNoteTitle(${i},this.value)" onblur="saveNoteTitle(${i},this.value)">
+          </div>
+          <textarea class="note-body" id="note-body-${i}" placeholder="Type your notes here..."
+            onchange="saveNoteBody(${i},this.value)" oninput="saveNoteBody(${i},this.value)">${nd.notes[i]||''}</textarea>
+        </div>
+      `).join('')}
+    </div>`;
+}
+
+function saveNoteTitle(idx,val){
+  if(!acctData.notepadData)acctData.notepadData={titles:['','','',''],notes:['','','','']};
+  acctData.notepadData.titles[idx]=val;
+  saveData();
+}
+function saveNoteBody(idx,val){
+  if(!acctData.notepadData)acctData.notepadData={titles:['','','',''],notes:['','','','']};
+  acctData.notepadData.notes[idx]=val;
+  saveData();
 }
 
 loadData();
