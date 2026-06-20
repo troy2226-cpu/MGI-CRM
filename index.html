@@ -320,23 +320,32 @@ async function sbFetch(path,opts={}){
 async function loadData(){
   setStatus('saving','Loading...');
   try{
-    console.log('Fetching from Supabase...');
     const res=await sbFetch('crm_data?id=eq.'+ROW_ID+'&select=data');
-    console.log('Response status:', res.status);
     if(res.ok){
       const rows=await res.json();
-      console.log('Rows returned:', rows.length);
       if(rows.length&&rows[0].data){
+        // Data exists in Supabase — load it, never overwrite
         acctData=rows[0].data;
-        console.log('Data loaded, keys:', Object.keys(acctData).length);
         if(!acctData.customAccounts)acctData.customAccounts=[];
         BASE_ACCTS.forEach(a=>{
           if(!acctData[a.id])acctData[a.id]={lastContact:'',followUp:DEFAULT_FOLLOWUPS[a.id]||'',notes:[...(DEFAULT_NOTES[a.id]||[])],monthlySales:{}};
           if(!acctData[a.id].monthlySales)acctData[a.id].monthlySales={};
         });
-      } else {console.log('No data found, building default');buildDefault();await pushData();}
-    } else {console.log('Response not ok:', res.status);buildDefault();}
-  }catch(e){console.log('Error:', e.message);buildDefault();setStatus('error','Offline');}
+      } else {
+        // No row exists yet — safe to initialize for first time only
+        buildDefault();
+        await pushData();
+      }
+    } else {
+      // Supabase error — load defaults in memory only, do NOT push to Supabase
+      buildDefault();
+      setStatus('error','Could not reach server — changes will not save');
+    }
+  }catch(e){
+    // Network error — load defaults in memory only, do NOT push to Supabase
+    buildDefault();
+    setStatus('error','Offline — changes will not save');
+  }
   setStatus('ok','Synced');render();
 }
 function buildDefault(){
