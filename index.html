@@ -121,6 +121,29 @@
   .modal-save{padding:8px 18px;font-size:13px;border:none;border-radius:7px;cursor:pointer;background:#185fa5;color:#fff;font-family:inherit;font-weight:600}
   .modal-save:hover{background:#0f4a8a}
   /* Detail */
+  /* Multiple contacts */
+  .contacts-section{margin-bottom:14px}
+  .contacts-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:8px}
+  .contacts-title{font-size:12px;font-weight:600;color:#999;text-transform:uppercase;letter-spacing:0.04em}
+  .add-contact-btn{padding:3px 10px;font-size:11px;border:1px solid #185fa5;border-radius:20px;cursor:pointer;background:transparent;color:#185fa5;font-family:inherit;font-weight:500}
+  .add-contact-btn:hover{background:#f0f5ff}
+  .contact-card{background:#f8f8f5;border:1px solid #e8e8e4;border-radius:8px;padding:10px 12px;margin-bottom:6px}
+  .contact-card-top{display:flex;align-items:center;gap:8px;margin-bottom:6px}
+  .contact-card-name{font-size:13px;font-weight:600;flex:1}
+  .contact-card-del{font-size:11px;color:#ccc;cursor:pointer;border:none;background:transparent;font-family:inherit;padding:2px 6px;border-radius:4px}
+  .contact-card-del:hover{color:#c0392b;background:#fdecea}
+  .contact-card-btns{display:flex;gap:6px;flex-wrap:wrap}
+  .contact-card-btn{padding:4px 10px;font-size:12px;border:1px solid #ddd;border-radius:7px;cursor:pointer;background:#fff;color:#111;text-decoration:none;display:flex;align-items:center;gap:4px;font-family:inherit}
+  .contact-card-btn:hover{background:#f5f5f3}
+  /* Add contact form */
+  .add-contact-form{background:#f0f8ff;border:1px solid #c5d9f5;border-radius:8px;padding:12px;margin-top:6px}
+  .add-contact-form-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:8px}
+  .add-contact-form-grid input{padding:6px 8px;font-size:13px;border:1px solid #c5d9f5;border-radius:6px;background:#fff;color:#111;font-family:inherit}
+  .add-contact-form-grid input:focus{outline:none;border-color:#185fa5}
+  .add-contact-form-grid input.full{grid-column:1/-1}
+  .add-contact-form-btns{display:flex;gap:8px}
+  .save-contact-btn{padding:6px 14px;font-size:12px;border:none;border-radius:6px;cursor:pointer;background:#185fa5;color:#fff;font-family:inherit;font-weight:500}
+  .cancel-contact-btn{padding:6px 14px;font-size:12px;border:1px solid #ddd;border-radius:6px;cursor:pointer;background:#fff;color:#555;font-family:inherit}
   /* Edit account modal */
   .edit-box{background:#f0f8ff;border:1px solid #c5d9f5;border-radius:8px;padding:14px;margin-bottom:14px}
   .edit-box-title{font-size:11px;font-weight:600;color:#185fa5;text-transform:uppercase;letter-spacing:0.04em;margin-bottom:10px}
@@ -639,10 +662,40 @@ function renderDetail(app){
         <div class="ms-label">FY27 Monthly Sales — click any month to edit, saves automatically</div>
         <div class="ms-months-grid">${monthInputs}</div>
       </div>
+      <div class="contacts-section">
+        <div class="contacts-header">
+          <span class="contacts-title">Contacts</span>
+          <button class="add-contact-btn" onclick="toggleAddContactForm(${a.id})">${IC.plus} Add contact</button>
+        </div>
+        <div id="add-contact-form-${a.id}" style="display:none" class="add-contact-form">
+          <div class="add-contact-form-grid">
+            <input id="nc-name-${a.id}" placeholder="Contact name">
+            <input id="nc-phone-${a.id}" placeholder="Phone">
+            <input id="nc-email-${a.id}" placeholder="Email" class="full">
+          </div>
+          <div class="add-contact-form-btns">
+            <button class="save-contact-btn" onclick="saveNewContact(${a.id})">Save</button>
+            <button class="cancel-contact-btn" onclick="toggleAddContactForm(${a.id})">Cancel</button>
+          </div>
+        </div>
+        ${(()=>{
+          const contacts=getContacts(a.id,a);
+          return contacts.map((ct,ci)=>`
+            <div class="contact-card">
+              <div class="contact-card-top">
+                <span class="contact-card-name">${ct.name||'—'}</span>
+                <button class="contact-card-del" onclick="deleteContact(${a.id},${ci})">✕</button>
+              </div>
+              <div class="contact-card-btns">
+                ${ct.phone?`<a class="contact-card-btn" href="tel:${ct.phone.replace(/\D/g,'')}">${IC.phone} Call</a>`:''}
+                ${ct.phone?`<a class="contact-card-btn" href="sms:${ct.phone.replace(/\D/g,'')}">${IC.msg} Text</a>`:''}
+                ${ct.email?`<a class="contact-card-btn" href="mailto:${ct.email}">${IC.mail} Email</a>`:''}
+              </div>
+            </div>
+          `).join('');
+        })()}
+      </div>
       <div class="contact-actions">
-        ${a.phone?`<a class="big-btn" href="tel:${a.phone.replace(/\D/g,'')}">${IC.phone} Call ${a.contact?a.contact.split(' ')[0]:''}</a>`:''}
-        ${a.phone?`<a class="big-btn" href="sms:${a.phone.replace(/\D/g,'')}">${IC.msg} Text ${a.contact?a.contact.split(' ')[0]:''}</a>`:''}
-        ${a.email?`<a class="big-btn" href="mailto:${a.email}">${IC.mail} Email ${a.contact?a.contact.split(' ')[0]:''}</a>`:''}
         <button class="big-btn accent" onclick="markContacted(${a.id})">${IC.check} Mark contacted</button>
         <button class="big-btn" onclick="toggleEditBox(${a.id})" id="edit-toggle-btn">${IC.pencil} Edit info</button>
         ${isCustom?`<button class="big-btn danger" onclick="deleteAccount(${a.id})">${IC.trash} Remove</button>`:''}
@@ -651,9 +704,6 @@ function renderDetail(app){
         <div class="edit-box-title">Edit Account Info</div>
         <div class="edit-grid">
           <div class="edit-field full"><label>Company name</label><input id="edit-company-${a.id}" value="${a.company||''}"></div>
-          <div class="edit-field"><label>Contact name</label><input id="edit-contact-${a.id}" value="${a.contact||''}"></div>
-          <div class="edit-field"><label>Phone</label><input id="edit-phone-${a.id}" value="${a.phone||''}"></div>
-          <div class="edit-field full"><label>Email</label><input id="edit-email-${a.id}" value="${a.email||''}"></div>
           <div class="edit-field full"><label>Product</label><input id="edit-product-${a.id}" value="${a.product||''}"></div>
         </div>
         <button class="edit-save-btn" onclick="saveAccountEdit(${a.id})">Save changes</button>
@@ -914,6 +964,44 @@ function saveSidebarSales(id){
   state.editingSales=null;saveData();render();
 }
 
+function getContacts(id, a){
+  // Returns merged contacts: saved extras + primary contact from account info
+  const d=acctData[id]||{};
+  const extras=d.extraContacts||[];
+  const primary=[];
+  if(a.contact||a.phone||a.email){
+    primary.push({name:a.contact||'',phone:a.phone||'',email:a.email||'',primary:true});
+  }
+  return[...primary,...extras];
+}
+
+function toggleAddContactForm(id){
+  const f=document.getElementById('add-contact-form-'+id);
+  if(f)f.style.display=f.style.display==='none'?'block':'none';
+}
+
+function saveNewContact(id){
+  const name=(document.getElementById('nc-name-'+id)||{}).value||'';
+  const phone=(document.getElementById('nc-phone-'+id)||{}).value||'';
+  const email=(document.getElementById('nc-email-'+id)||{}).value||'';
+  if(!name&&!phone&&!email)return;
+  if(!acctData[id])acctData[id]={lastContact:'',followUp:'',notes:[],monthlySales:{}};
+  if(!acctData[id].extraContacts)acctData[id].extraContacts=[];
+  acctData[id].extraContacts.push({name,phone,email});
+  saveData();render();
+}
+
+function deleteContact(id,idx){
+  // idx 0 is primary — can't delete, only edit via Edit info
+  // idx > 0 maps to extraContacts[idx-1]
+  const primary=1; // always 1 primary
+  const extraIdx=idx-primary;
+  if(extraIdx<0)return; // can't delete primary this way
+  if(!acctData[id]||!acctData[id].extraContacts)return;
+  acctData[id].extraContacts.splice(extraIdx,1);
+  saveData();render();
+}
+
 function toggleEditBox(id){
   const box=document.getElementById('edit-box-'+id);
   if(box)box.style.display=box.style.display==='none'?'block':'none';
@@ -921,19 +1009,14 @@ function toggleEditBox(id){
 
 function saveAccountEdit(id){
   const company=(document.getElementById('edit-company-'+id)||{}).value||'';
-  const contact=(document.getElementById('edit-contact-'+id)||{}).value||'';
-  const phone=(document.getElementById('edit-phone-'+id)||{}).value||'';
-  const email=(document.getElementById('edit-email-'+id)||{}).value||'';
   const product=(document.getElementById('edit-product-'+id)||{}).value||'';
-
-  // Update in customAccounts if custom, otherwise store override in acctData
   const customIdx=(acctData.customAccounts||[]).findIndex(a=>a.id===id);
   if(customIdx>=0){
-    acctData.customAccounts[customIdx]={...acctData.customAccounts[customIdx],company,contact,phone,email,product};
+    acctData.customAccounts[customIdx]={...acctData.customAccounts[customIdx],company,product};
   } else {
-    // Store overrides for base accounts
     if(!acctData[id])acctData[id]={lastContact:'',followUp:'',notes:[],monthlySales:{}};
-    acctData[id].infoOverride={company,contact,phone,email,product};
+    if(!acctData[id].infoOverride)acctData[id].infoOverride={};
+    acctData[id].infoOverride={...acctData[id].infoOverride,company,product};
   }
   saveData();render();
 }
