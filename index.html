@@ -511,7 +511,9 @@ const IC={
   dollar:`<svg class="icon" viewBox="0 0 24 24"><line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg>`,
   home:`<svg class="icon" viewBox="0 0 24 24"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>`,
   pencil:`<svg class="icon" viewBox="0 0 24 24"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>`,
-  msg:`<svg class="icon" viewBox="0 0 24 24"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>`
+  msg:`<svg class="icon" viewBox="0 0 24 24"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>`,
+  map:`<svg class="icon" viewBox="0 0 24 24"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/></svg>`,
+  badger:`<svg class="icon" viewBox="0 0 24 24"><path d="M3 12h18M3 6h18M3 18h18"/></svg>`
 };
 
 function render(){
@@ -640,6 +642,7 @@ function renderDetail(app){
         <div class="detail-field"><div class="field-label">Email</div><div class="field-val" style="font-size:11px">${a.email||'—'}</div></div>
         <div class="detail-field"><div class="field-label">Last contacted</div><div class="field-val">${d.lastContact||'—'}</div></div>
         <div class="detail-field"><div class="field-label">Product</div><div class="field-val" style="font-size:11px">${a.product||'—'}</div></div>
+        <div class="detail-field" style="grid-column:1/-1"><div class="field-label">Address</div><div class="field-val" style="font-size:11px">${(d.address||a.address)||'—'}</div></div>
         <div class="detail-field"><div class="field-label">FY27 YTD actual</div><div class="field-val">${ytd?fmt(ytd):'—'}</div></div>
         <div class="detail-field"><div class="field-label">Pace target (${FY_MONTHS_ELAPSED}mo)</div>
           <div class="field-val">${pace?fmt(pace):'—'}${pace&&ytd?`<span style="margin-left:6px;font-size:12px" class="${diff>=0?'up':'dn'}">${fmtSigned(diff)}</span>`:''}</div></div>
@@ -698,12 +701,15 @@ function renderDetail(app){
       <div class="contact-actions">
         <button class="big-btn accent" onclick="markContacted(${a.id})">${IC.check} Mark contacted</button>
         <button class="big-btn" onclick="toggleEditBox(${a.id})" id="edit-toggle-btn">${IC.pencil} Edit info</button>
+        ${(()=>{const addr=(acctData[a.id]&&acctData[a.id].address)||a.address||'';return addr?`<a class="big-btn" href="https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(addr)}" target="_blank">${IC.map} Map</a>`:''})()}
+        ${(()=>{const addr=(acctData[a.id]&&acctData[a.id].address)||a.address||'';const q=addr||a.company;return`<a class="big-btn" href="https://www.badgermapping.com/accounts/?search=${encodeURIComponent(q)}" target="_blank">${IC.badger} Badger</a>`;})()}
         ${isCustom?`<button class="big-btn danger" onclick="deleteAccount(${a.id})">${IC.trash} Remove</button>`:''}
       </div>
       <div class="edit-box" id="edit-box-${a.id}" style="display:none">
         <div class="edit-box-title">Edit Account Info</div>
         <div class="edit-grid">
           <div class="edit-field full"><label>Company name</label><input id="edit-company-${a.id}" value="${a.company||''}"></div>
+          <div class="edit-field full"><label>Address</label><input id="edit-address-${a.id}" value="${(acctData[a.id]&&acctData[a.id].address)||a.address||''}" placeholder="123 Main St, City, State ZIP"></div>
           <div class="edit-field full"><label>Product</label><input id="edit-product-${a.id}" value="${a.product||''}"></div>
         </div>
         <button class="edit-save-btn" onclick="saveAccountEdit(${a.id})">Save changes</button>
@@ -1010,13 +1016,15 @@ function toggleEditBox(id){
 function saveAccountEdit(id){
   const company=(document.getElementById('edit-company-'+id)||{}).value||'';
   const product=(document.getElementById('edit-product-'+id)||{}).value||'';
+  const address=(document.getElementById('edit-address-'+id)||{}).value||'';
   const customIdx=(acctData.customAccounts||[]).findIndex(a=>a.id===id);
   if(customIdx>=0){
-    acctData.customAccounts[customIdx]={...acctData.customAccounts[customIdx],company,product};
+    acctData.customAccounts[customIdx]={...acctData.customAccounts[customIdx],company,product,address};
   } else {
     if(!acctData[id])acctData[id]={lastContact:'',followUp:'',notes:[],monthlySales:{}};
     if(!acctData[id].infoOverride)acctData[id].infoOverride={};
     acctData[id].infoOverride={...acctData[id].infoOverride,company,product};
+    acctData[id].address=address;
   }
   saveData();render();
 }
