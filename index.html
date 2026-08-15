@@ -36,22 +36,32 @@
   .home-sub{font-size:12px;color:#888;margin-bottom:12px}
   /* Sales sidebar */
   .sales-sidebar{background:#fff;border:1px solid #e8e8e4;border-radius:12px;overflow:hidden;position:sticky;top:16px}
-  .sidebar-header{padding:12px 14px;border-bottom:1px solid #f0f0ec;display:flex;align-items:center;justify-content:space-between}
+  .sidebar-header{padding:10px 14px;border-bottom:1px solid #f0f0ec}
+  .sidebar-header-top{display:flex;align-items:center;justify-content:space-between;margin-bottom:6px}
   .sidebar-title{font-size:13px;font-weight:600;color:#111}
   .sidebar-month{font-size:11px;color:#888}
-  .sidebar-total{font-size:11px;color:#888;padding:8px 14px;border-bottom:1px solid #f5f5f3;display:flex;justify-content:space-between}
+  .sidebar-col-btns{display:flex;gap:4px;flex-wrap:wrap}
+  .sidebar-col-btn{padding:2px 8px;font-size:11px;border:1px solid #ddd;border-radius:20px;cursor:pointer;background:transparent;color:#888;font-family:inherit}
+  .sidebar-col-btn.active{background:#111;color:#fff;border-color:#111;font-weight:600}
+  .sidebar-total{font-size:11px;color:#888;padding:6px 14px;border-bottom:1px solid #f5f5f3;display:flex;justify-content:space-between}
   .sidebar-total span{font-weight:600;color:#185fa5}
-  .sidebar-list{max-height:520px;overflow-y:auto}
-  .sidebar-row{display:flex;align-items:center;gap:8px;padding:7px 14px;border-bottom:1px solid #f8f8f6;transition:background 0.1s}
+  .sidebar-list{max-height:480px;overflow-y:auto}
+  .sidebar-row{border-bottom:1px solid #f8f8f6;padding:6px 10px;transition:background 0.1s}
   .sidebar-row:last-child{border-bottom:none}
   .sidebar-row:hover{background:#fafaf8}
-  .sidebar-name{font-size:12px;font-weight:500;color:#111;flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
-  .sidebar-val{font-size:12px;font-weight:600;color:#185fa5;white-space:nowrap;min-width:60px;text-align:right}
+  .sidebar-row-top{display:flex;align-items:center;gap:6px}
+  .sidebar-name{font-size:12px;font-weight:600;color:#185fa5;flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;cursor:pointer}
+  .sidebar-name:hover{text-decoration:underline}
+  .sidebar-followup{font-size:10px;white-space:nowrap;padding:1px 6px;border-radius:10px}
+  .sidebar-val{font-size:12px;font-weight:600;color:#185fa5;white-space:nowrap;text-align:right;cursor:pointer;padding:2px 4px;border-radius:4px;min-width:55px}
+  .sidebar-val:hover{background:#eef4ff}
   .sidebar-val.empty{color:#ddd;font-weight:400}
-  .sidebar-inp{width:72px;padding:2px 5px;font-size:12px;font-weight:600;border:1px solid #185fa5;border-radius:5px;color:#185fa5;font-family:inherit;text-align:right;background:#fff}
+  .sidebar-val.empty:hover{color:#185fa5;background:#eef4ff}
+  .sidebar-inp{width:68px;padding:2px 5px;font-size:12px;font-weight:600;border:1px solid #185fa5;border-radius:5px;color:#185fa5;font-family:inherit;text-align:right;background:#fff}
   .sidebar-inp:focus{outline:none}
-  .sidebar-edit-btn{font-size:10px;color:#ccc;background:transparent;border:none;cursor:pointer;padding:0;font-family:inherit}
-  .sidebar-edit-btn:hover{color:#185fa5}
+  .sidebar-row-btns{display:flex;gap:4px;margin-top:4px;flex-wrap:wrap}
+  .sidebar-mini-btn{padding:2px 7px;font-size:11px;border:1px solid #ddd;border-radius:5px;cursor:pointer;background:transparent;color:#555;text-decoration:none;display:flex;align-items:center;gap:3px;font-family:inherit}
+  .sidebar-mini-btn:hover{background:#f5f5f3}
   .today-bar{background:#fff8ec;border:1px solid #f0d080;border-radius:8px;padding:10px 14px;margin-bottom:14px;display:flex;align-items:center;gap:10px;flex-wrap:wrap}
   .today-label{font-size:12px;font-weight:600;color:#a06800;white-space:nowrap}
   .today-chip{background:#fff;border:1px solid #f0d080;border-radius:20px;padding:3px 10px;font-size:12px;color:#111;cursor:pointer;white-space:nowrap}
@@ -896,14 +906,23 @@ function deleteNote(id,idx){
 
 function renderHome(app){
   if(!acctData.notepadData){acctData.notepadData={titles:['','','',''],notes:['','','','']};}
+  if(!state.sidebarSort)state.sidebarSort='name';
   const nd=acctData.notepadData;
   const d=new Date();
   const dayNames=['Sunday','Monday','Tuesday','Wednesday','Thursday','Friday','Saturday'];
-  const monthNames=['January','February','March','April','May','June','July','August','September','October','November','December'];
-  const greeting=`${dayNames[d.getDay()]}, ${monthNames[d.getMonth()]} ${d.getDate()}`;
+  const monthNames2=['January','February','March','April','May','June','July','August','September','October','November','December'];
+  const greeting=`${dayNames[d.getDay()]}, ${monthNames2[d.getMonth()]} ${d.getDate()}`;
   const allAccts=getAllAccounts();
   const curTotal=allAccts.reduce((s,a)=>s+getCurMS(a.id),0);
-  const sortedAccts=allAccts.slice().sort((a,b)=>a.company.localeCompare(b.company));
+
+  // Sort sidebar accounts
+  let sortedAccts=allAccts.slice();
+  if(state.sidebarSort==='name') sortedAccts.sort((a,b)=>a.company.localeCompare(b.company));
+  else if(state.sidebarSort==='sales') sortedAccts.sort((a,b)=>getCurMS(b.id)-getCurMS(a.id));
+  else if(state.sidebarSort==='followup'){
+    const ord={overdue:0,today:1,upcoming:2,future:3};
+    sortedAccts.sort((a,b)=>ord[getStatus(a.id)]-ord[getStatus(b.id)]);
+  }
 
   app.innerHTML=tbHTML('home')+`
     <div class="home-greeting">${greeting}</div>
@@ -923,21 +942,43 @@ function renderHome(app){
       </div>
       <div class="sales-sidebar">
         <div class="sidebar-header">
-          <span class="sidebar-title">${MONTH_NAMES[CUR_MONTH_IDX].slice(0,3)} Sales</span>
-          <span class="sidebar-month">${CUR_MONTH_KEY}</span>
+          <div class="sidebar-header-top">
+            <span class="sidebar-title">Accounts</span>
+            <span class="sidebar-month">${CUR_MONTH_KEY}</span>
+          </div>
+          <div class="sidebar-col-btns">
+            <button class="sidebar-col-btn ${state.sidebarSort==='name'?'active':''}" onclick="setSidebarSort('name')">Name</button>
+            <button class="sidebar-col-btn ${state.sidebarSort==='sales'?'active':''}" onclick="setSidebarSort('sales')">Sales</button>
+            <button class="sidebar-col-btn ${state.sidebarSort==='followup'?'active':''}" onclick="setSidebarSort('followup')">Follow-up</button>
+          </div>
         </div>
         <div class="sidebar-total"><span>Month total</span><span>${curTotal?('$'+Math.round(curTotal).toLocaleString()):'$0'}</span></div>
         <div class="sidebar-list">
           ${sortedAccts.map(a=>{
             const ms=getCurMS(a.id);
             const isEditing=state.editingSales===('sb-'+a.id);
+            const d2=acctData[a.id]||{};
+            const fu=d2.followUp||'';
+            const st=getStatus(a.id);
+            const fuColor=st==='overdue'?'#a32d2d':st==='today'?'#a06800':st==='upcoming'?'#3b6d11':'#aaa';
+            const fuBg=st==='overdue'?'#fdecea':st==='today'?'#fff3d6':st==='upcoming'?'#eaf3de':'#f0f0ec';
+            const contacts=getContacts(a.id,a);
+            const primary=contacts[0]||{};
             return`<div class="sidebar-row">
-              <span class="sidebar-name" title="${a.company}">${a.company}</span>
-              ${isEditing?
-                `<input class="sidebar-inp" id="sb-inp-${a.id}" type="number" value="${ms||''}" placeholder="0"
-                  onblur="saveSidebarSales(${a.id})" onkeydown="if(event.key==='Enter')saveSidebarSales(${a.id});if(event.key==='Escape'){state.editingSales=null;render();}">`:
-                `<span class="sidebar-val ${!ms?'empty':''}" onclick="state.editingSales='sb-${a.id}';render()">${ms?('$'+Math.round(ms).toLocaleString()):'—'}</span>`
-              }
+              <div class="sidebar-row-top">
+                <span class="sidebar-name" onclick="openDetail(${a.id})" title="${a.company}">${a.company}</span>
+                ${fu?`<span class="sidebar-followup" style="background:${fuBg};color:${fuColor}">${fu}</span>`:''}
+                ${isEditing?
+                  `<input class="sidebar-inp" id="sb-inp-${a.id}" type="number" value="${ms||''}" placeholder="0"
+                    onblur="saveSidebarSales(${a.id})" onkeydown="if(event.key==='Enter')saveSidebarSales(${a.id});if(event.key==='Escape'){state.editingSales=null;render();}">`:
+                  `<span class="sidebar-val ${!ms?'empty':''}" onclick="state.editingSales='sb-${a.id}';render()" title="Click to enter sales">${ms?('$'+Math.round(ms).toLocaleString()):'—'}</span>`
+                }
+              </div>
+              <div class="sidebar-row-btns">
+                ${primary.phone?`<a class="sidebar-mini-btn" href="tel:${primary.phone.replace(/\D/g,'')}">${IC.phone}Call</a>`:''}
+                ${primary.phone?`<a class="sidebar-mini-btn" href="sms:${primary.phone.replace(/\D/g,'')}">${IC.msg}Text</a>`:''}
+                ${primary.email?`<a class="sidebar-mini-btn" href="mailto:${primary.email}">${IC.mail}Email</a>`:''}
+              </div>
             </div>`;
           }).join('')}
         </div>
@@ -950,6 +991,8 @@ function renderHome(app){
     if(inp){inp.focus();inp.select();}
   }
 }
+
+function setSidebarSort(s){state.sidebarSort=s;render();}
 
 function saveNoteTitle(idx,val){
   if(!acctData.notepadData)acctData.notepadData={titles:['','','',''],notes:['','','','']};
