@@ -745,7 +745,7 @@ function renderSales(app){
     const fy26=getFY26(a.id);
     const ytd=getFYYTD(a.id);const pace=getPace(a.id);const diff=ytd-pace;
     return{...a,fy26,ytd,pace,diff};
-  }).filter(r=>r.fy26>0||r.ytd>0);
+  });
 
   const sc=state.salesSort;
   rows.sort((a,b)=>{
