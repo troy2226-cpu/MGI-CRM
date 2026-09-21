@@ -131,6 +131,23 @@
   .modal-save{padding:8px 18px;font-size:13px;border:none;border-radius:7px;cursor:pointer;background:#185fa5;color:#fff;font-family:inherit;font-weight:600}
   .modal-save:hover{background:#0f4a8a}
   /* Detail */
+  /* To-do list */
+  .todo-card{background:#fff;border:1px solid #e8e8e4;border-radius:12px;padding:14px;display:flex;flex-direction:column;gap:8px;min-height:600px}
+  .todo-header{display:flex;align-items:center;gap:8px;margin-bottom:2px}
+  .todo-title{font-size:13px;font-weight:600;color:#111;flex:1}
+  .todo-count{font-size:11px;color:#aaa}
+  .todo-add-row{display:flex;gap:6px}
+  .todo-add-inp{flex:1;padding:7px 10px;font-size:13px;border:1px solid #ddd;border-radius:7px;background:#fafaf8;color:#111;font-family:inherit}
+  .todo-add-inp:focus{outline:none;border-color:#185fa5;background:#fff}
+  .todo-add-btn{padding:7px 12px;font-size:13px;border:none;border-radius:7px;cursor:pointer;background:#185fa5;color:#fff;font-family:inherit;font-weight:500}
+  .todo-add-btn:hover{background:#0f4a8a}
+  .todo-list{flex:1;display:flex;flex-direction:column;gap:4px;overflow-y:auto}
+  .todo-item{display:flex;align-items:flex-start;gap:8px;padding:8px 10px;background:#fafaf8;border:1px solid #f0f0ec;border-radius:7px;cursor:pointer;transition:all 0.15s;user-select:none}
+  .todo-item:hover{background:#f0f5ff;border-color:#c5d9f5}
+  .todo-check{width:16px;height:16px;border:2px solid #ddd;border-radius:4px;flex-shrink:0;margin-top:1px;display:flex;align-items:center;justify-content:center;transition:all 0.15s}
+  .todo-item:hover .todo-check{border-color:#185fa5}
+  .todo-text{font-size:13px;color:#111;flex:1;line-height:1.4}
+  .todo-empty{font-size:12px;color:#ccc;text-align:center;padding:30px 0}
   /* Multiple contacts */
   .contacts-section{margin-bottom:14px}
   .contacts-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:8px}
@@ -929,7 +946,7 @@ function renderHome(app){
     <div class="home-sub">Click any section title to rename it. Notes and sales save automatically.</div>
     <div class="home-layout">
       <div class="notes-grid">
-        ${[0,1,2,3].map(i=>`
+        ${[0,1,2].map(i=>`
           <div class="note-card">
             <div class="note-card-header">
               <input class="note-title-input" id="note-title-${i}" value="${nd.titles[i]||''}" placeholder="Section ${i+1} — click to name"
@@ -939,6 +956,27 @@ function renderHome(app){
               onchange="saveNoteBody(${i},this.value)" oninput="saveNoteBody(${i},this.value)">${nd.notes[i]||''}</textarea>
           </div>
         `).join('')}
+        <div class="todo-card">
+          <div class="todo-header">
+            <span class="todo-title">To Do</span>
+            <span class="todo-count">${(acctData.todos||[]).length} item${(acctData.todos||[]).length===1?'':'s'}</span>
+          </div>
+          <div class="todo-add-row">
+            <input class="todo-add-inp" id="todo-inp" placeholder="Add a task..." onkeydown="if(event.key==='Enter')addTodo()">
+            <button class="todo-add-btn" onclick="addTodo()">+ Add</button>
+          </div>
+          <div class="todo-list">
+            ${(acctData.todos||[]).length?
+              (acctData.todos||[]).map((t,i)=>`
+                <div class="todo-item" onclick="completeTodo(${i})">
+                  <div class="todo-check"></div>
+                  <span class="todo-text">${t}</span>
+                </div>
+              `).join(''):
+              '<div class="todo-empty">No tasks yet — add one above</div>'
+            }
+          </div>
+        </div>
       </div>
       <div class="sales-sidebar">
         <div class="sidebar-header">
@@ -993,6 +1031,23 @@ function renderHome(app){
 }
 
 function setSidebarSort(s){state.sidebarSort=s;render();}
+
+function addTodo(){
+  const inp=document.getElementById('todo-inp');
+  if(!inp||!inp.value.trim())return;
+  if(!acctData.todos)acctData.todos=[];
+  acctData.todos.push(inp.value.trim());
+  inp.value='';
+  saveData();render();
+  // Re-focus after render
+  setTimeout(()=>{const i=document.getElementById('todo-inp');if(i)i.focus();},50);
+}
+
+function completeTodo(idx){
+  if(!acctData.todos)return;
+  acctData.todos.splice(idx,1);
+  saveData();render();
+}
 
 function saveNoteTitle(idx,val){
   if(!acctData.notepadData)acctData.notepadData={titles:['','','',''],notes:['','','','']};
