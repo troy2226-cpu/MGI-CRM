@@ -154,6 +154,12 @@
   .contacts-title{font-size:12px;font-weight:600;color:#999;text-transform:uppercase;letter-spacing:0.04em}
   .add-contact-btn{padding:3px 10px;font-size:11px;border:1px solid #185fa5;border-radius:20px;cursor:pointer;background:transparent;color:#185fa5;font-family:inherit;font-weight:500}
   .add-contact-btn:hover{background:#f0f5ff}
+  .contact-edit-form{background:#f0f8ff;border:1px solid #c5d9f5;border-radius:7px;padding:10px;margin-top:6px}
+  .contact-edit-form-grid{display:grid;grid-template-columns:1fr 1fr;gap:6px;margin-bottom:8px}
+  .contact-edit-form-grid input{padding:5px 8px;font-size:12px;border:1px solid #c5d9f5;border-radius:5px;background:#fff;color:#111;font-family:inherit}
+  .contact-edit-form-grid input.full{grid-column:1/-1}
+  .contact-edit-form-grid input:focus{outline:none;border-color:#185fa5}
+  .contact-edit-form-btns{display:flex;gap:6px}
   .contact-card{background:#f8f8f5;border:1px solid #e8e8e4;border-radius:8px;padding:10px 12px;margin-bottom:6px}
   .contact-card-top{display:flex;align-items:center;gap:8px;margin-bottom:6px}
   .contact-card-name{font-size:13px;font-weight:600;flex:1}
@@ -665,8 +671,6 @@ function renderDetail(app){
         <span class="ar-badge ${badgeClass(st)}" style="align-self:flex-start">${d.followUp||'—'}</span>
       </div>
       <div class="detail-grid">
-        <div class="detail-field"><div class="field-label">Phone</div><div class="field-val">${a.phone||'—'}</div></div>
-        <div class="detail-field"><div class="field-label">Email</div><div class="field-val" style="font-size:11px">${a.email||'—'}</div></div>
         <div class="detail-field"><div class="field-label">Last contacted</div><div class="field-val">${d.lastContact||'—'}</div></div>
         <div class="detail-field"><div class="field-label">Product</div><div class="field-val" style="font-size:11px">${a.product||'—'}</div></div>
         <div class="detail-field" style="grid-column:1/-1"><div class="field-label">Address</div><div class="field-val" style="font-size:11px">${(d.address||a.address)||'—'}</div></div>
@@ -674,24 +678,8 @@ function renderDetail(app){
         <div class="detail-field"><div class="field-label">Pace target (${FY_MONTHS_ELAPSED}mo)</div>
           <div class="field-val">${pace?fmt(pace):'—'}${pace&&ytd?`<span style="margin-left:6px;font-size:12px" class="${diff>=0?'up':'dn'}">${fmtSigned(diff)}</span>`:''}</div></div>
       </div>
-      <div class="fy26-box">
-        <div style="flex:1">
-          <div class="fy26-label">FY26 Full Year — used for pace calculation</div>
-          <div class="fy26-sub">Monthly avg: ${fmt(monthlyAvg)} &nbsp;|&nbsp; ${FY_MONTHS_ELAPSED}-month pace: ${fmt(pace)}</div>
-          <div class="fy26-input-row">
-            <input id="fy26-inp-${a.id}" type="number" value="${fy26||''}" placeholder="Enter FY26 total...">
-            <button onclick="saveFY26(${a.id})">Update</button>
-          </div>
-        </div>
-        <div class="fy26-pace">
-          <div class="fy26-pace-label">vs Pace</div>
-          <div class="fy26-pace-val ${pace&&ytd?(diff>=0?'up':'dn'):''}">${pace&&ytd?fmtSigned(diff):'—'}</div>
-        </div>
-      </div>
-      <div class="month-sales-box">
-        <div class="ms-label">FY27 Monthly Sales — click any month to edit, saves automatically</div>
-        <div class="ms-months-grid">${monthInputs}</div>
-      </div>
+
+      <!-- CONTACTS -->
       <div class="contacts-section">
         <div class="contacts-header">
           <span class="contacts-title">Contacts</span>
@@ -714,7 +702,19 @@ function renderDetail(app){
             <div class="contact-card">
               <div class="contact-card-top">
                 <span class="contact-card-name">${ct.name||'—'}</span>
-                <button class="contact-card-del" onclick="deleteContact(${a.id},${ci})">✕</button>
+                <button class="contact-card-btn" style="margin-left:auto;font-size:11px" onclick="toggleContactEdit(${a.id},${ci})">✎ Edit</button>
+                ${ci>0?`<button class="contact-card-del" onclick="deleteContact(${a.id},${ci})">✕</button>`:''}
+              </div>
+              <div id="contact-edit-${a.id}-${ci}" style="display:none" class="contact-edit-form">
+                <div class="contact-edit-form-grid">
+                  <input id="ce-name-${a.id}-${ci}" placeholder="Name" value="${ct.name||''}">
+                  <input id="ce-phone-${a.id}-${ci}" placeholder="Phone" value="${ct.phone||''}">
+                  <input id="ce-email-${a.id}-${ci}" placeholder="Email" value="${ct.email||''}" class="full">
+                </div>
+                <div class="contact-edit-form-btns">
+                  <button class="save-contact-btn" onclick="saveContactEdit(${a.id},${ci})">Save</button>
+                  <button class="cancel-contact-btn" onclick="toggleContactEdit(${a.id},${ci})">Cancel</button>
+                </div>
               </div>
               <div class="contact-card-btns">
                 ${ct.phone?`<a class="contact-card-btn" href="tel:${ct.phone.replace(/\D/g,'')}">${IC.phone} Call</a>`:''}
@@ -725,9 +725,11 @@ function renderDetail(app){
           `).join('');
         })()}
       </div>
+
+      <!-- ACTION BUTTONS -->
       <div class="contact-actions">
         <button class="big-btn accent" onclick="markContacted(${a.id})">${IC.check} Mark contacted</button>
-        <button class="big-btn" onclick="toggleEditBox(${a.id})" id="edit-toggle-btn">${IC.pencil} Edit info</button>
+        <button class="big-btn" onclick="toggleEditBox(${a.id})">${IC.pencil} Edit info</button>
         ${(()=>{const addr=(acctData[a.id]&&acctData[a.id].address)||a.address||'';return addr?`<a class="big-btn" href="https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(addr)}" target="_blank">${IC.map} Map</a>`:''})()}
         ${(()=>{const addr=(acctData[a.id]&&acctData[a.id].address)||a.address||'';const q=addr||a.company;return`<a class="big-btn" href="https://www.badgermapping.com/accounts/?search=${encodeURIComponent(q)}" target="_blank">${IC.badger} Badger</a>`;})()}
         ${isCustom?`<button class="big-btn danger" onclick="deleteAccount(${a.id})">${IC.trash} Remove</button>`:''}
@@ -741,6 +743,8 @@ function renderDetail(app){
         </div>
         <button class="edit-save-btn" onclick="saveAccountEdit(${a.id})">Save changes</button>
       </div>
+
+      <!-- FOLLOW-UP -->
       <div class="followup-box">
         <div class="followup-left"><div class="followup-label">Next follow-up</div><div class="followup-date" id="fu-display">${d.followUp||'Not set'}</div></div>
         <div class="quick-days"><span class="qd-lbl">Set:</span>
@@ -751,6 +755,8 @@ function renderDetail(app){
           <input type="date" onchange="setFollowUpDate(${a.id},this.value)">
         </div>
       </div>
+
+      <!-- NOTES & HISTORY -->
       <div class="history-section">
         <h3>Notes & history</h3>
         ${(d.notes&&d.notes.length)?d.notes.map((n,i)=>`<div class="hist-entry">
@@ -761,6 +767,26 @@ function renderDetail(app){
           <input id="note-input" placeholder="Log a call or note..." onkeydown="if(event.key==='Enter')addNote(${a.id})">
           <button onclick="addNote(${a.id})">${IC.plus} Add</button>
         </div>
+      </div>
+
+      <!-- FY26 & MONTHLY SALES -->
+      <div class="fy26-box">
+        <div style="flex:1">
+          <div class="fy26-label">FY26 Full Year — used for pace calculation</div>
+          <div class="fy26-sub">Monthly avg: ${fmt(monthlyAvg)} &nbsp;|&nbsp; ${FY_MONTHS_ELAPSED}-month pace: ${fmt(pace)}</div>
+          <div class="fy26-input-row">
+            <input id="fy26-inp-${a.id}" type="number" value="${fy26||''}" placeholder="Enter FY26 total...">
+            <button onclick="saveFY26(${a.id})">Update</button>
+          </div>
+        </div>
+        <div class="fy26-pace">
+          <div class="fy26-pace-label">vs Pace</div>
+          <div class="fy26-pace-val ${pace&&ytd?(diff>=0?'up':'dn'):''}">${pace&&ytd?fmtSigned(diff):'—'}</div>
+        </div>
+      </div>
+      <div class="month-sales-box">
+        <div class="ms-label">FY27 Monthly Sales — click any month to edit, saves automatically</div>
+        <div class="ms-months-grid">${monthInputs}</div>
       </div>
     </div>`;
 }
@@ -1103,6 +1129,33 @@ function deleteContact(id,idx){
   if(extraIdx<0)return; // can't delete primary this way
   if(!acctData[id]||!acctData[id].extraContacts)return;
   acctData[id].extraContacts.splice(extraIdx,1);
+  saveData();render();
+}
+
+function toggleContactEdit(acctId, ci){
+  const f=document.getElementById('contact-edit-'+acctId+'-'+ci);
+  if(f)f.style.display=f.style.display==='none'?'block':'none';
+}
+
+function saveContactEdit(acctId, ci){
+  const name=(document.getElementById('ce-name-'+acctId+'-'+ci)||{}).value||'';
+  const phone=(document.getElementById('ce-phone-'+acctId+'-'+ci)||{}).value||'';
+  const email=(document.getElementById('ce-email-'+acctId+'-'+ci)||{}).value||'';
+  const contacts=getContacts(acctId, getAllAccounts().find(x=>x.id===acctId)||{});
+  if(ci===0){
+    // primary contact — save as infoOverride
+    if(!acctData[acctId])acctData[acctId]={lastContact:'',followUp:'',notes:[],monthlySales:{}};
+    if(!acctData[acctId].infoOverride)acctData[acctId].infoOverride={};
+    acctData[acctId].infoOverride={...acctData[acctId].infoOverride,contact:name,phone,email};
+    // also update customAccounts if custom
+    const customIdx=(acctData.customAccounts||[]).findIndex(a=>a.id===acctId);
+    if(customIdx>=0) acctData.customAccounts[customIdx]={...acctData.customAccounts[customIdx],contact:name,phone,email};
+  } else {
+    // extra contact — index into extraContacts
+    if(!acctData[acctId])acctData[acctId]={lastContact:'',followUp:'',notes:[],monthlySales:{}};
+    if(!acctData[acctId].extraContacts)acctData[acctId].extraContacts=[];
+    acctData[acctId].extraContacts[ci-1]={name,phone,email};
+  }
   saveData();render();
 }
 
