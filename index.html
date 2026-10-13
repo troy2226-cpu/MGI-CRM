@@ -759,14 +759,14 @@ function renderDetail(app){
       <!-- NOTES & HISTORY -->
       <div class="history-section">
         <h3>Notes & history</h3>
+        <div class="add-note-row" style="margin-top:0;margin-bottom:12px">
+          <input id="note-input" placeholder="Log a call or note..." onkeydown="if(event.key==='Enter')addNote(${a.id})">
+          <button onclick="addNote(${a.id})">${IC.plus} Add</button>
+        </div>
         ${(d.notes&&d.notes.length)?d.notes.map((n,i)=>`<div class="hist-entry">
           <span style="flex:1;${n.startsWith('★')?'color:#3b6d11':''}">${n}</span>
           <button class="hist-del" onclick="deleteNote(${a.id},${i})">${IC.x}</button>
         </div>`).join(''):'<div style="font-size:13px;color:#aaa;padding:8px 0">No notes yet</div>'}
-        <div class="add-note-row">
-          <input id="note-input" placeholder="Log a call or note..." onkeydown="if(event.key==='Enter')addNote(${a.id})">
-          <button onclick="addNote(${a.id})">${IC.plus} Add</button>
-        </div>
       </div>
 
       <!-- FY26 & MONTHLY SALES -->
