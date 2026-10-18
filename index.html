@@ -364,7 +364,7 @@ const DEFAULT_NOTES={3:["2/10 offered 22 melt 1.5 izod at 39"],11:["2/9 followed
 const DEFAULT_FOLLOWUPS={1:"1/26/2026",2:"1/26/2026",3:"1/26/2026",4:"1/26/2026",5:"1/26/2026",6:"1/26/2026",7:"1/26/2026",8:"1/26/2026",9:"1/26/2026",10:"1/26/2026",11:"2/16/2026",12:"2/16/2026",13:"2/17/2026",14:"2/18/2026",15:"2/19/2026",16:"2/23/2026",17:"3/3/2026",18:"3/3/2026",19:"3/3/2026",20:"3/4/2026",21:"3/13/2026",22:"3/13/2026",23:"3/16/2026",24:"3/30/2026",25:"3/30/2026",26:"3/30/2026",27:"3/30/2026"};
 
 let acctData={};
-let state={tab:'home',filter:'all',search:'',detail:null,editingSales:null,sort:'name',salesSort:{col:'diff',dir:'asc'},editingCell:null};
+let state={tab:'home',filter:'all',search:'',detail:null,editingSales:null,sort:'name',salesSort:{col:'diff',dir:'asc'},editingCell:null,editingFollowUp:null};
 let saveTimer=null;
 
 // Returns combined list of base + custom accounts
@@ -460,8 +460,14 @@ function getPace(id){const fy26=getFY26(id);return Math.round((fy26/12)*FY_MONTH
 function sortAccounts(list){
   if(state.sort==='name')return list.slice().sort((a,b)=>a.company.localeCompare(b.company));
   if(state.sort==='sales')return list.slice().sort((a,b)=>getCurMS(b.id)-getCurMS(a.id));
-  const ord={overdue:0,today:1,upcoming:2,future:3};
-  return list.slice().sort((a,b)=>ord[getStatus(a.id)]-ord[getStatus(b.id)]);
+  // Follow-up sort: sort by actual date ascending (nulls last)
+  return list.slice().sort((a,b)=>{
+    const da=parseDate((acctData[a.id]||{}).followUp);
+    const db=parseDate((acctData[b.id]||{}).followUp);
+    if(!da&&!db)return a.company.localeCompare(b.company);
+    if(!da)return 1;if(!db)return -1;
+    return da-db;
+  });
 }
 
 function showAddModal(){
@@ -896,7 +902,7 @@ function sortSales(col){
   if(state.salesSort.col===col){state.salesSort.dir=state.salesSort.dir==='asc'?'desc':'asc';}
   else{state.salesSort={col,dir:col==='company'?'asc':'desc'};}render();
 }
-function switchTab(t){state.tab=t;state.detail=null;state.editingSales=null;state.editingCell=null;render();}
+function switchTab(t){state.tab=t;state.detail=null;state.editingSales=null;state.editingCell=null;state.editingFollowUp=null;render();}
 function setSearch(v){state.search=v;render();}
 function setFilter(f){state.filter=f;render();}
 function setSort(s){state.sort=s;render();}
@@ -1031,7 +1037,13 @@ function renderHome(app){
             return`<div class="sidebar-row">
               <div class="sidebar-row-top">
                 <span class="sidebar-name" onclick="openDetail(${a.id})" title="${a.company}">${a.company}</span>
-                ${fu?`<span class="sidebar-followup" style="background:${fuBg};color:${fuColor}">${fu}</span>`:''}
+                ${state.editingFollowUp===a.id?
+                  `<input type="date" style="font-size:11px;padding:2px 5px;border:1px solid #185fa5;border-radius:5px;background:#fff;color:#111;font-family:inherit;cursor:pointer"
+                    onchange="saveSidebarFollowUp(${a.id},this.value)" onblur="if(!this.value){state.editingFollowUp=null;render();}"
+                    autofocus>`:
+                  `<span class="sidebar-followup" style="background:${fuBg};color:${fuColor};cursor:pointer" title="Click to change date"
+                    onclick="event.stopPropagation();state.editingFollowUp=${a.id};render()">${fu||'set date'}</span>`
+                }
                 ${isEditing?
                   `<input class="sidebar-inp" id="sb-inp-${a.id}" type="number" value="${ms||''}" placeholder="0"
                     onblur="saveSidebarSales(${a.id})" onkeydown="if(event.key==='Enter')saveSidebarSales(${a.id});if(event.key==='Escape'){state.editingSales=null;render();}">`:
@@ -1057,6 +1069,14 @@ function renderHome(app){
 }
 
 function setSidebarSort(s){state.sidebarSort=s;render();}
+
+function saveSidebarFollowUp(id,val){
+  if(!val){state.editingFollowUp=null;render();return;}
+  if(!acctData[id])acctData[id]={lastContact:'',followUp:'',notes:[],monthlySales:{}};
+  const[y,m,d]=val.split('-');
+  acctData[id].followUp=`${parseInt(m)}/${parseInt(d)}/${y}`;
+  state.editingFollowUp=null;saveData();render();
+}
 
 function addTodo(){
   const inp=document.getElementById('todo-inp');
