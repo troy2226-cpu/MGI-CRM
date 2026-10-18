@@ -827,6 +827,7 @@ function renderSales(app){
   rows.sort((a,b)=>{
     if(sc.col==='company')return sc.dir==='asc'?a.company.localeCompare(b.company):b.company.localeCompare(a.company);
     if(sc.col==='ytd')return sc.dir==='asc'?a.ytd-b.ytd:b.ytd-a.ytd;
+    if(sc.col==='fy26')return sc.dir==='asc'?a.fy26-b.fy26:b.fy26-a.fy26;
     if(sc.col==='pace')return sc.dir==='asc'?a.pace-b.pace:b.pace-a.pace;
     if(sc.col==='diff')return sc.dir==='asc'?a.diff-b.diff:b.diff-a.diff;
     const av=getMS(a.id,sc.col);const bv=getMS(b.id,sc.col);
@@ -834,6 +835,7 @@ function renderSales(app){
   });
 
   const totYTD=rows.reduce((s,r)=>s+r.ytd,0);
+  const totFY26=rows.reduce((s,r)=>s+r.fy26,0);
   const totPace=rows.reduce((s,r)=>s+r.pace,0);
   const totDiff=totYTD-totPace;
 
@@ -856,6 +858,7 @@ function renderSales(app){
       <thead><tr>
         ${thHTML('company','Account',false)}
         ${thHTML('ytd','YTD',false)}
+        ${thHTML('fy26','FY26 Goal',false)}
         ${thHTML('pace','Pace',false)}
         ${thHTML('diff','vs Pace',false)}
         ${DISPLAY_COLS.map(c=>thHTML(c.key,c.label,c.key===CUR_MONTH_KEY)).join('')}
@@ -867,6 +870,12 @@ function renderSales(app){
             ${r.product?`<span style="font-weight:400;color:#888;font-size:10px;display:block">${r.product}</span>`:''}
           </td>
           <td style="font-weight:600">${r.ytd?fmt(r.ytd):'—'}</td>
+          <td style="color:#888">${state.editingCell&&state.editingCell.id===r.id&&state.editingCell.key==='__fy26__'?
+            `<input class="cell-input" id="cell-${r.id}-fy26-inp" type="number" value="${r.fy26||''}" placeholder="0"
+              onblur="saveFY26Cell(${r.id},this.value)"
+              onkeydown="if(event.key==='Enter')saveFY26Cell(${r.id},this.value);if(event.key==='Escape'){state.editingCell=null;render();}">`:
+            `<span class="cell-display ${!r.fy26?'empty-cell':''}" onclick="state.editingCell={id:${r.id},key:'__fy26__',fyMonth:0};render()" title="Click to edit FY26 goal">${r.fy26?fmt(r.fy26):'—'}</span>`
+          }</td>
           <td style="color:#888">${r.pace?fmt(r.pace):'—'}</td>
           <td class="${r.pace&&r.ytd?(r.diff>=0?'up':'dn'):''}">${r.pace&&r.ytd?fmtSigned(r.diff):'—'}</td>
           ${DISPLAY_COLS.map(c=>{
@@ -884,6 +893,7 @@ function renderSales(app){
         <tr>
           <td>Total</td>
           <td>${fmt(totYTD)}</td>
+          <td style="color:#888">${totFY26?fmt(totFY26):'—'}</td>
           <td style="color:#888">${fmt(totPace)}</td>
           <td class="${totDiff>=0?'up':'dn'}">${fmtSigned(totDiff)}</td>
           ${DISPLAY_COLS.map(c=>{const t=colTotal(c.key);const isCur=c.key===CUR_MONTH_KEY;return`<td class="${isCur?'cur-col':''}">${t?fmt(t):'—'}</td>`;}).join('')}
@@ -892,7 +902,8 @@ function renderSales(app){
     </table></div>`;
 
   if(state.editingCell){
-    const inp=document.getElementById(`cell-${state.editingCell.id}-${state.editingCell.fyMonth}-inp`);
+    const key=state.editingCell.key==='__fy26__'?'fy26':state.editingCell.fyMonth;
+    const inp=document.getElementById(`cell-${state.editingCell.id}-${key}-inp`);
     if(inp){inp.focus();inp.select();}
   }
 }
@@ -903,6 +914,12 @@ function saveFY26(id){
   if(!acctData[id])acctData[id]={lastContact:'',followUp:'',notes:[],monthlySales:{}};
   acctData[id].fy26_override=val;
   saveData();render();
+}
+function saveFY26Cell(id,val){
+  const v=parseFloat(val)||0;
+  if(!acctData[id])acctData[id]={lastContact:'',followUp:'',notes:[],monthlySales:{}};
+  acctData[id].fy26_override=v;
+  state.editingCell=null;saveData();render();
 }
 function startCellEdit(id,key){
   const col=DISPLAY_COLS.find(c=>c.key===key);
