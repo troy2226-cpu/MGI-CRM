@@ -364,7 +364,7 @@ const DEFAULT_NOTES={3:["2/10 offered 22 melt 1.5 izod at 39"],11:["2/9 followed
 const DEFAULT_FOLLOWUPS={1:"1/26/2026",2:"1/26/2026",3:"1/26/2026",4:"1/26/2026",5:"1/26/2026",6:"1/26/2026",7:"1/26/2026",8:"1/26/2026",9:"1/26/2026",10:"1/26/2026",11:"2/16/2026",12:"2/16/2026",13:"2/17/2026",14:"2/18/2026",15:"2/19/2026",16:"2/23/2026",17:"3/3/2026",18:"3/3/2026",19:"3/3/2026",20:"3/4/2026",21:"3/13/2026",22:"3/13/2026",23:"3/16/2026",24:"3/30/2026",25:"3/30/2026",26:"3/30/2026",27:"3/30/2026"};
 
 let acctData={};
-let state={tab:'home',filter:'all',search:'',detail:null,editingSales:null,sort:'name',salesSort:{col:'diff',dir:'asc'},editingCell:null,editingFollowUp:null};
+let state={tab:'home',filter:'all',search:'',detail:null,editingSales:null,sort:'name',salesSort:{col:'diff',dir:'asc'},editingCell:null,editingFollowUp:null,addingNote:null};
 let saveTimer=null;
 
 // Returns combined list of base + custom accounts
@@ -608,12 +608,21 @@ function renderAccounts(app){
       ${filtered.length?filtered.map(a=>{
         const st=getStatus(a.id);const d=acctData[a.id]||{};const ln=(d.notes&&d.notes.length)?d.notes[0]:'';
         const ms=getCurMS(a.id);const isEditing=state.editingSales===a.id;
+        const isEditingFU=state.editingFollowUp===('acct-'+a.id);
+        const isAddingNote=state.addingNote===a.id;
         return`<div class="acct-row ${st==='overdue'?'overdue':st==='today'?'due-today':''}" onclick="openDetail(${a.id})">
           <div class="acct-left">
             <div class="ar-top">
               <span class="ar-name">${a.company}</span>
               ${a.product?`<span class="ar-product">${a.product}</span>`:''}
-              <span class="ar-badge ${badgeClass(st)}">${badgeText(st,d.followUp)}</span>
+              <span onclick="event.stopPropagation()" style="display:inline-flex;align-items:center">
+                ${isEditingFU?
+                  `<input type="date" style="font-size:11px;padding:2px 5px;border:1px solid #185fa5;border-radius:5px;background:#fff;color:#111;font-family:inherit"
+                    onchange="saveAcctFollowUp(${a.id},this.value)" onblur="if(!this.value){state.editingFollowUp=null;render();}" autofocus>`:
+                  `<span class="ar-badge ${badgeClass(st)}" style="cursor:pointer" title="Click to change date"
+                    onclick="state.editingFollowUp='acct-${a.id}';render()">${badgeText(st,d.followUp)}</span>`
+                }
+              </span>
             </div>
             <div class="ar-bot">
               ${a.contact?`<span class="ar-contact-meta">${a.contact}</span>`:''}
@@ -623,9 +632,17 @@ function renderAccounts(app){
                 ${a.phone?`<a class="action-btn" href="tel:${a.phone.replace(/\D/g,'')}">${IC.phone}Call</a>`:''}
                 ${a.phone?`<a class="action-btn" href="sms:${a.phone.replace(/\D/g,'')}">${IC.msg}Text</a>`:''}
                 ${a.email?`<a class="action-btn" href="mailto:${a.email}">${IC.mail}Email</a>`:''}
+                <button class="action-btn" onclick="event.stopPropagation();state.addingNote=state.addingNote===${a.id}?null:${a.id};render()">${IC.plus} Note</button>
               </div>
             </div>
-            ${ln?`<div class="ar-note">${ln}</div>`:''}
+            ${isAddingNote?`
+              <div onclick="event.stopPropagation()" style="display:flex;gap:6px;margin-top:6px">
+                <input id="quick-note-${a.id}" placeholder="Log a call or note..." style="flex:1;padding:6px 10px;font-size:12px;border:1px solid #ddd;border-radius:7px;background:#fff;color:#111;font-family:inherit"
+                  onkeydown="if(event.key==='Enter')saveQuickNote(${a.id});if(event.key==='Escape'){state.addingNote=null;render();}" autofocus>
+                <button onclick="saveQuickNote(${a.id})" style="padding:6px 12px;font-size:12px;border:none;border-radius:7px;cursor:pointer;background:#185fa5;color:#fff;font-family:inherit;font-weight:500">Add</button>
+                <button onclick="event.stopPropagation();state.addingNote=null;render()" style="padding:6px 10px;font-size:12px;border:1px solid #ddd;border-radius:7px;cursor:pointer;background:#fff;color:#555;font-family:inherit">✕</button>
+              </div>`:''}
+            ${ln&&!isAddingNote?`<div class="ar-note">${ln}</div>`:''}
           </div>
           <div class="acct-right" onclick="event.stopPropagation()">
             <div class="month-sales-label">${MONTH_NAMES[CUR_MONTH_IDX].slice(0,3)}</div>
@@ -902,11 +919,11 @@ function sortSales(col){
   if(state.salesSort.col===col){state.salesSort.dir=state.salesSort.dir==='asc'?'desc':'asc';}
   else{state.salesSort={col,dir:col==='company'?'asc':'desc'};}render();
 }
-function switchTab(t){state.tab=t;state.detail=null;state.editingSales=null;state.editingCell=null;state.editingFollowUp=null;render();}
+function switchTab(t){state.tab=t;state.detail=null;state.editingSales=null;state.editingCell=null;state.editingFollowUp=null;state.addingNote=null;render();}
 function setSearch(v){state.search=v;render();}
 function setFilter(f){state.filter=f;render();}
 function setSort(s){state.sort=s;render();}
-function openDetail(id){state.detail=id;state.editingSales=null;state.editingCell=null;render();}
+function openDetail(id){state.detail=id;state.editingSales=null;state.editingCell=null;state.addingNote=null;state.editingFollowUp=null;render();}
 function closeDetail(){state.detail=null;state.editingSales=null;render();}
 function startEditSales(id){state.editingSales=id;render();}
 function saveMonthlySales(id){
@@ -969,8 +986,13 @@ function renderHome(app){
   if(state.sidebarSort==='name') sortedAccts.sort((a,b)=>a.company.localeCompare(b.company));
   else if(state.sidebarSort==='sales') sortedAccts.sort((a,b)=>getCurMS(b.id)-getCurMS(a.id));
   else if(state.sidebarSort==='followup'){
-    const ord={overdue:0,today:1,upcoming:2,future:3};
-    sortedAccts.sort((a,b)=>ord[getStatus(a.id)]-ord[getStatus(b.id)]);
+    sortedAccts.sort((a,b)=>{
+      const da=parseDate((acctData[a.id]||{}).followUp);
+      const db=parseDate((acctData[b.id]||{}).followUp);
+      if(!da&&!db)return a.company.localeCompare(b.company);
+      if(!da)return 1;if(!db)return -1;
+      return da-db;
+    });
   }
 
   app.innerHTML=tbHTML('home')+`
@@ -1076,6 +1098,21 @@ function saveSidebarFollowUp(id,val){
   const[y,m,d]=val.split('-');
   acctData[id].followUp=`${parseInt(m)}/${parseInt(d)}/${y}`;
   state.editingFollowUp=null;saveData();render();
+}
+function saveAcctFollowUp(id,val){
+  if(!val){state.editingFollowUp=null;render();return;}
+  if(!acctData[id])acctData[id]={lastContact:'',followUp:'',notes:[],monthlySales:{}};
+  const[y,m,d]=val.split('-');
+  acctData[id].followUp=`${parseInt(m)}/${parseInt(d)}/${y}`;
+  state.editingFollowUp=null;saveData();render();
+}
+function saveQuickNote(id){
+  const inp=document.getElementById('quick-note-'+id);
+  if(!inp||!inp.value.trim())return;
+  if(!acctData[id])acctData[id]={lastContact:'',followUp:'',notes:[],monthlySales:{}};
+  const d=new Date();
+  acctData[id].notes.unshift(`${d.getMonth()+1}/${d.getDate()} ${inp.value.trim()}`);
+  state.addingNote=null;saveData();render();
 }
 
 function addTodo(){
