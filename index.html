@@ -455,7 +455,7 @@ function getMS(id,key){const d=acctData[id];if(!d||!d.monthlySales)return 0;retu
 function getCurMS(id){return getMS(id,CUR_MONTH_KEY);}
 function getCurTotal(){return getAllAccounts().reduce((s,a)=>s+getCurMS(a.id),0);}
 function getFYYTD(id){return FY_MONTH_KEYS.filter(k=>isBefore(k,CUR_MONTH_IDX,CUR_YEAR)||k.key===CUR_MONTH_KEY).reduce((s,k)=>s+getMS(id,k.key),0);}
-function getPace(id){const fy26=getFY26(id);return Math.round((fy26/12)*FY_MONTHS_ELAPSED);}
+function getPace(id){const ytd=getFYYTD(id);return FY_MONTHS_ELAPSED>0?Math.round((ytd/FY_MONTHS_ELAPSED)*12):0;}
 
 function sortAccounts(list){
   if(state.sort==='name')return list.slice().sort((a,b)=>a.company.localeCompare(b.company));
@@ -482,7 +482,7 @@ function showAddModal(){
         <div class="modal-field"><label>Phone</label><input id="new-phone" placeholder="(555) 000-0000"></div>
         <div class="modal-field full"><label>Email</label><input id="new-email" placeholder="name@company.com"></div>
         <div class="modal-field full"><label>Product</label><input id="new-product" placeholder="e.g. 12 melt homo"></div>
-        <div class="modal-field"><label>FY26 full year ($)</label><input id="new-fy26" type="number" placeholder="0"></div>
+        <div class="modal-field"><label>FY26 Actual total sales ($)</label><input id="new-fy26" type="number" placeholder="0"></div>
         <div class="modal-field"><label>Follow-up date</label><input id="new-followup" type="date"></div>
       </div>
       <div class="modal-actions">
@@ -668,7 +668,7 @@ function renderDetail(app){
   if(!acctData[a.id].monthlySales)acctData[a.id].monthlySales={};
   const d=acctData[a.id];const st=getStatus(a.id);
   const fy26=getFY26(a.id);
-  const ytd=getFYYTD(a.id);const pace=getPace(a.id);const diff=ytd-pace;
+  const ytd=getFYYTD(a.id);const pace=getPace(a.id);const diff=pace-fy26;
   const monthlyAvg=Math.round(fy26/12);
   const isCustom=!!(acctData.customAccounts&&acctData.customAccounts.find(x=>x.id===a.id));
 
@@ -698,8 +698,8 @@ function renderDetail(app){
         <div class="detail-field"><div class="field-label">Product</div><div class="field-val" style="font-size:11px">${a.product||'—'}</div></div>
         <div class="detail-field" style="grid-column:1/-1"><div class="field-label">Address</div><div class="field-val" style="font-size:11px">${(d.address||a.address)||'—'}</div></div>
         <div class="detail-field"><div class="field-label">FY27 YTD actual</div><div class="field-val">${ytd?fmt(ytd):'—'}</div></div>
-        <div class="detail-field"><div class="field-label">Pace target (${FY_MONTHS_ELAPSED}mo)</div>
-          <div class="field-val">${pace?fmt(pace):'—'}${pace&&ytd?`<span style="margin-left:6px;font-size:12px" class="${diff>=0?'up':'dn'}">${fmtSigned(diff)}</span>`:''}</div></div>
+        <div class="detail-field"><div class="field-label">Ann. Pace (${FY_MONTHS_ELAPSED}mo × 12)</div>
+          <div class="field-val">${pace?fmt(pace):'—'}${pace&&fy26?`<span style="margin-left:6px;font-size:12px" class="${diff>=0?'up':'dn'}">${fmtSigned(diff)} vs FY26</span>`:''}</div></div>
       </div>
 
       <!-- CONTACTS -->
@@ -795,16 +795,16 @@ function renderDetail(app){
       <!-- FY26 & MONTHLY SALES -->
       <div class="fy26-box">
         <div style="flex:1">
-          <div class="fy26-label">FY26 Full Year — used for pace calculation</div>
-          <div class="fy26-sub">Monthly avg: ${fmt(monthlyAvg)} &nbsp;|&nbsp; ${FY_MONTHS_ELAPSED}-month pace: ${fmt(pace)}</div>
+          <div class="fy26-label">FY26 Actual — last year's total sales</div>
+          <div class="fy26-sub">Monthly avg: ${fmt(monthlyAvg)} &nbsp;|&nbsp; Ann. Pace (${FY_MONTHS_ELAPSED}mo): ${fmt(pace)}</div>
           <div class="fy26-input-row">
             <input id="fy26-inp-${a.id}" type="number" value="${fy26||''}" placeholder="Enter FY26 total...">
             <button onclick="saveFY26(${a.id})">Update</button>
           </div>
         </div>
         <div class="fy26-pace">
-          <div class="fy26-pace-label">vs Pace</div>
-          <div class="fy26-pace-val ${pace&&ytd?(diff>=0?'up':'dn'):''}">${pace&&ytd?fmtSigned(diff):'—'}</div>
+          <div class="fy26-pace-label">vs FY26</div>
+          <div class="fy26-pace-val ${pace&&fy26?(diff>=0?'up':'dn'):''}">${pace&&fy26?fmtSigned(diff):'—'}</div>
         </div>
       </div>
       <div class="month-sales-box">
@@ -819,7 +819,7 @@ function renderSales(app){
   const allAccts=getAllAccounts();
   const rows=allAccts.map(a=>{
     const fy26=getFY26(a.id);
-    const ytd=getFYYTD(a.id);const pace=getPace(a.id);const diff=ytd-pace;
+    const ytd=getFYYTD(a.id);const pace=getPace(a.id);const diff=pace-fy26;
     return{...a,fy26,ytd,pace,diff};
   });
 
@@ -849,18 +849,18 @@ function renderSales(app){
   app.innerHTML=tbHTML('sales')+`
     <div class="stat-grid">
       <div class="stat-card"><div class="stat-label">FY27 YTD actual</div><div class="stat-val">${totYTD?fmt(totYTD):'$0'}</div></div>
-      <div class="stat-card"><div class="stat-label">Pace target (${FY_MONTHS_ELAPSED}mo)</div><div class="stat-val">${fmt(totPace)}</div></div>
-      <div class="stat-card"><div class="stat-label">vs Pace</div><div class="stat-val ${totDiff>=0?'up':'dn'}">${fmtSigned(totDiff)}</div></div>
+      <div class="stat-card"><div class="stat-label">Ann. Pace (${FY_MONTHS_ELAPSED}mo)</div><div class="stat-val">${fmt(totPace)}</div></div>
+      <div class="stat-card"><div class="stat-label">vs FY26</div><div class="stat-val ${totDiff>=0?'up':'dn'}">${fmtSigned(totDiff)}</div></div>
       <div class="stat-card"><div class="stat-label">${MONTH_NAMES[CUR_MONTH_IDX].slice(0,3)} so far</div><div class="stat-val">${curTotal?fmt(curTotal):'$0'}</div></div>
     </div>
-    <div class="pace-note"><strong>Pace:</strong> FY26 ÷ 12 × ${FY_MONTHS_ELAPSED} months (Apr–${MONTH_NAMES[CUR_MONTH_IDX].slice(0,3)}). Green = ahead, red = behind. Click any cell to edit. Fix FY26 by opening account detail.</div>
+    <div class="pace-note"><strong>Ann. Pace:</strong> YTD ÷ ${FY_MONTHS_ELAPSED} months × 12 = annualized run rate (Apr–${MONTH_NAMES[CUR_MONTH_IDX].slice(0,3)}). <strong>vs FY26:</strong> Ann. Pace minus FY26 Actual — green = running ahead of last year, red = behind. Click any cell to edit.</div>
     <div class="sales-wrap"><table class="sales-table">
       <thead><tr>
         ${thHTML('company','Account',false)}
         ${thHTML('ytd','YTD',false)}
-        ${thHTML('fy26','FY26 Goal',false)}
-        ${thHTML('pace','Pace',false)}
-        ${thHTML('diff','vs Pace',false)}
+        ${thHTML('fy26','FY26 Actual',false)}
+        ${thHTML('pace','Ann. Pace',false)}
+        ${thHTML('diff','vs FY26',false)}
         ${DISPLAY_COLS.map(c=>thHTML(c.key,c.label,c.key===CUR_MONTH_KEY)).join('')}
       </tr></thead>
       <tbody>
