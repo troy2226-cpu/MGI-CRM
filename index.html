@@ -1017,16 +1017,6 @@ function renderHome(app){
     <div class="home-sub">Click any section title to rename it. Notes and sales save automatically.</div>
     <div class="home-layout">
       <div class="notes-grid">
-        ${[0,1,2].map(i=>`
-          <div class="note-card">
-            <div class="note-card-header">
-              <input class="note-title-input" id="note-title-${i}" value="${nd.titles[i]||''}" placeholder="Section ${i+1} — click to name"
-                onchange="saveNoteTitle(${i},this.value)" onblur="saveNoteTitle(${i},this.value)">
-            </div>
-            <textarea class="note-body" id="note-body-${i}" placeholder="Type your notes here..."
-              onchange="saveNoteBody(${i},this.value)" oninput="saveNoteBody(${i},this.value)">${nd.notes[i]||''}</textarea>
-          </div>
-        `).join('')}
         <div class="todo-card">
           <div class="todo-header">
             <span class="todo-title">To Do</span>
@@ -1048,6 +1038,16 @@ function renderHome(app){
             }
           </div>
         </div>
+        ${[0,1,2].map(i=>`
+          <div class="note-card">
+            <div class="note-card-header">
+              <input class="note-title-input" id="note-title-${i}" value="${nd.titles[i]||''}" placeholder="Section ${i+1} — click to name"
+                onchange="saveNoteTitle(${i},this.value)" onblur="saveNoteTitle(${i},this.value)">
+            </div>
+            <textarea class="note-body" id="note-body-${i}" placeholder="Type your notes here..."
+              onchange="saveNoteBody(${i},this.value)" oninput="saveNoteBody(${i},this.value)">${nd.notes[i]||''}</textarea>
+          </div>
+        `).join('')}
       </div>
       <div class="sales-sidebar">
         <div class="sidebar-header">
