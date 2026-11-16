@@ -1073,6 +1073,8 @@ function renderHome(app){
             const fuBg=st==='overdue'?'#fdecea':st==='today'?'#fff3d6':st==='upcoming'?'#eaf3de':'#f0f0ec';
             const contacts=getContacts(a.id,a);
             const primary=contacts[0]||{};
+            const isSbAddingNote=state.addingNote===('sb-'+a.id);
+            const lastNote=d2.notes&&d2.notes.length?d2.notes[0]:'';
             return`<div class="sidebar-row">
               <div class="sidebar-row-top">
                 <span class="sidebar-name" onclick="openDetail(${a.id})" title="${a.company}">${a.company}</span>
@@ -1093,7 +1095,16 @@ function renderHome(app){
                 ${primary.phone?`<a class="sidebar-mini-btn" href="tel:${primary.phone.replace(/\D/g,'')}">${IC.phone}Call</a>`:''}
                 ${primary.phone?`<a class="sidebar-mini-btn" href="sms:${primary.phone.replace(/\D/g,'')}">${IC.msg}Text</a>`:''}
                 ${primary.email?`<a class="sidebar-mini-btn" href="mailto:${primary.email}">${IC.mail}Email</a>`:''}
+                <button class="sidebar-mini-btn" onclick="event.stopPropagation();state.addingNote=state.addingNote==='sb-${a.id}'?null:'sb-${a.id}';render()" style="${isSbAddingNote?'background:#eef4ff;color:#185fa5;border-color:#185fa5':''}">${IC.plus} Note</button>
               </div>
+              ${isSbAddingNote?`
+                <div onclick="event.stopPropagation()" style="display:flex;gap:5px;margin-top:6px">
+                  <input id="sb-note-${a.id}" placeholder="Log a call or note..." style="flex:1;padding:5px 8px;font-size:11px;border:1px solid #185fa5;border-radius:6px;background:#fff;color:#111;font-family:inherit"
+                    onkeydown="if(event.key==='Enter')saveSbNote(${a.id});if(event.key==='Escape'){state.addingNote=null;render();}" autofocus>
+                  <button onclick="saveSbNote(${a.id})" style="padding:5px 10px;font-size:11px;border:none;border-radius:6px;cursor:pointer;background:#185fa5;color:#fff;font-family:inherit;font-weight:500">Add</button>
+                  <button onclick="event.stopPropagation();state.addingNote=null;render()" style="padding:5px 8px;font-size:11px;border:1px solid #ddd;border-radius:6px;cursor:pointer;background:#fff;color:#555;font-family:inherit">✕</button>
+                </div>`:''}
+              ${lastNote&&!isSbAddingNote?`<div style="font-size:11px;color:#999;margin-top:4px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis" title="${lastNote}">${lastNote}</div>`:''}
             </div>`;
           }).join('')}
         </div>
@@ -1125,6 +1136,14 @@ function saveAcctFollowUp(id,val){
 }
 function saveQuickNote(id){
   const inp=document.getElementById('quick-note-'+id);
+  if(!inp||!inp.value.trim())return;
+  if(!acctData[id])acctData[id]={lastContact:'',followUp:'',notes:[],monthlySales:{}};
+  const d=new Date();
+  acctData[id].notes.unshift(`${d.getMonth()+1}/${d.getDate()} ${inp.value.trim()}`);
+  state.addingNote=null;saveData();render();
+}
+function saveSbNote(id){
+  const inp=document.getElementById('sb-note-'+id);
   if(!inp||!inp.value.trim())return;
   if(!acctData[id])acctData[id]={lastContact:'',followUp:'',notes:[],monthlySales:{}};
   const d=new Date();
